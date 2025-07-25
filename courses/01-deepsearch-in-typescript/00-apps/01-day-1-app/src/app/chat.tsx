@@ -5,20 +5,38 @@ import { useChat } from "@ai-sdk/react";
 import { Send, Loader } from "lucide-react";
 import { SignInModal } from "~/components/sign-in-modal";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { isNewChatCreated } from "~/utils";
 
 interface ChatProps {
   userName: string;
+  chatId: string | undefined;
+  isAuthenticated: boolean;
 }
 
-export const ChatPage = ({ userName }: ChatProps) => {
-  const { messages, input, handleInputChange, handleSubmit, isLoading } =
-    useChat();
+export const ChatPage = ({ userName, chatId }: ChatProps) => {
+  const router = useRouter();
+  const { messages, input, handleInputChange, handleSubmit, isLoading, data } =
+    useChat({
+      body: {
+        chatId,
+      },
+    });
   const { status } = useSession();
   const [modalOpen, setModalOpen] = useState(true);
 
   // Show modal if unauthenticated
   const showSignInModal = status === "unauthenticated" && modalOpen;
+
+  // Handle new chat creation redirect
+  useEffect(() => {
+    const lastDataItem = data?.[data.length - 1];
+
+    if (lastDataItem && isNewChatCreated(lastDataItem)) {
+      router.push(`?id=${lastDataItem.chatId}`);
+    }
+  }, [data, router]);
 
   return (
     <>

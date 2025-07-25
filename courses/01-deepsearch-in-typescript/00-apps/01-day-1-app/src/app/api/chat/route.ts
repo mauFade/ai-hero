@@ -36,7 +36,9 @@ export async function POST(request: Request) {
   const finalChatId = chatId ?? crypto.randomUUID();
 
   // Create a new chat if chatId was not provided
+  let isNewChat = false;
   if (!chatId) {
+    isNewChat = true;
     await upsertChat({
       userId,
       chatId: finalChatId,
@@ -54,6 +56,14 @@ export async function POST(request: Request) {
 
   return createDataStreamResponse({
     execute: async (dataStream: DataStreamWriter) => {
+      // Send new chat ID if this is a new chat
+      if (isNewChat) {
+        dataStream.writeData({
+          type: "NEW_CHAT_CREATED",
+          chatId: finalChatId,
+        });
+      }
+
       const result = streamText({
         model,
         messages,
