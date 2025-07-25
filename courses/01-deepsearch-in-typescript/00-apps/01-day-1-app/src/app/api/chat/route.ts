@@ -3,11 +3,17 @@ import {
   streamText,
   createDataStreamResponse,
   type DataStreamWriter,
+  appendResponseMessages,
 } from "ai";
 import { z } from "zod";
 import { model } from "~/models";
 import { auth } from "~/server/auth";
 import { searchSerper } from "~/serper";
+import { upsertChat } from "~/server/db/queries";
+import { generateChatTitle } from "~/utils";
+import { chats } from "~/server/db/schema";
+import { eq } from "drizzle-orm";
+import { db } from "~/server/db";
 
 export const maxDuration = 60;
 
@@ -20,12 +26,34 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as {
     messages: Array<Message>;
+    chatId?: string;
   };
+
+  const { messages, chatId } = body;
+  const userId = session.user.id;
+
+  // Generate a chat ID if not provided
+  const finalChatId = chatId ?? crypto.randomUUID();
+
+  // Create a new chat if chatId was not provided
+  if (!chatId) {
+    await upsertChat({
+      userId,
+      chatId: finalChatId,
+      title: messages[messages.length - 1]!.content.slice(0, 50) + "...",
+      messages,
+    });
+  } else {
+    const chat = await db.query.chats.findFirst({
+      where: eq(chats.id, finalChatId),
+    });
+    if (!chat || chat.userId !== session.user.id) {
+      return new Response("Chat not found or unauthorized", { status: 404 });
+    }
+  }
 
   return createDataStreamResponse({
     execute: async (dataStream: DataStreamWriter) => {
-      const { messages } = body;
-
       const result = streamText({
         model,
         messages,
@@ -61,7 +89,26 @@ export async function POST(request: Request) {
             },
           },
         },
-        maxSteps: 10,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        onFinish: async (res) => {
+          const updatedMessages = appendResponseMessages({
+            messages,
+            responseMessages: res.response.messages,
+          });
+
+          const lastMessage = messages[messages.length - 1];
+          if (!lastMessage) {
+            return;
+          }
+
+          // Save the complete chat history
+          await upsertChat({
+            userId: session.user.id,
+            chatId: finalChatId,
+            title: lastMessage.content.slice(0, 50) + "...",
+            messages: updatedMessages,
+          });
+        },
       });
 
       result.mergeIntoDataStream(dataStream);
