@@ -35,7 +35,14 @@ pnpm install
    c. Go to the "OAuth2" section
    d. Add a redirect URI: `http://localhost:3000/api/auth/callback/discord`
    e. Copy the Client ID and Client Secret
-   f. Create a `.env` file in the root directory with the following variables:
+
+6. (Optional) Set up Langfuse for telemetry and observability:
+
+   a. Sign up at [Langfuse](https://langfuse.com)
+   b. Create a new project
+   c. Copy the Secret Key, Public Key, and Base URL from your project settings
+
+7. Create a `.env` file in the root directory with the following variables:
 
 ```bash
 # Database
@@ -54,15 +61,20 @@ GOOGLE_GENERATIVE_AI_API_KEY="your-google-ai-api-key-here"
 
 # Search
 SERPER_API_KEY="your-serper-api-key-here"
+
+# Langfuse (Optional - for telemetry and observability)
+LANGFUSE_SECRET_KEY="your-langfuse-secret-key-here"
+LANGFUSE_PUBLIC_KEY="your-langfuse-public-key-here"
+LANGFUSE_BASEURL="https://cloud.langfuse.com"
 ```
 
-6. Run the database migrations:
+8. Run the database migrations:
 
 ```bash
 pnpm run db:push
 ```
 
-7. Start the development server:
+9. Start the development server:
 
 ```bash
 pnpm run dev

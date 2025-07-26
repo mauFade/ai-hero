@@ -99,6 +99,7 @@ export async function POST(request: Request) {
             },
           },
         },
+        experimental_telemetry: { isEnabled: true },
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         onFinish: async (res) => {
           const updatedMessages = appendResponseMessages({
