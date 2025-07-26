@@ -8,20 +8,23 @@ import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { isNewChatCreated } from "~/utils";
+import type { Message } from "ai";
 
 interface ChatProps {
   userName: string;
   chatId: string | undefined;
   isAuthenticated: boolean;
+  initialMessages: Message[];
 }
 
-export const ChatPage = ({ userName, chatId }: ChatProps) => {
+export const ChatPage = ({ userName, chatId, initialMessages }: ChatProps) => {
   const router = useRouter();
   const { messages, input, handleInputChange, handleSubmit, isLoading, data } =
     useChat({
       body: {
         chatId,
       },
+      initialMessages,
     });
   const { status } = useSession();
   const [modalOpen, setModalOpen] = useState(true);
