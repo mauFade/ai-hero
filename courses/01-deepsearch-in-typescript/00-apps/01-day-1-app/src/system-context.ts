@@ -40,8 +40,29 @@ export class SystemContext {
    */
   private scrapeHistory: ScrapeResult[] = [];
 
+  /**
+   * The user's original question
+   */
+  private userQuestion: string;
+
+  constructor(userQuestion: string) {
+    this.userQuestion = userQuestion;
+  }
+
   shouldStop() {
     return this.step >= 10;
+  }
+
+  getStep() {
+    return this.step;
+  }
+
+  incrementStep() {
+    this.step++;
+  }
+
+  getUserQuestion() {
+    return this.userQuestion;
   }
 
   reportQueries(queries: QueryResult[]) {
