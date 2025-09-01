@@ -102,7 +102,7 @@ export const ChatMessage = ({
   const isAI = role === "assistant";
 
   return (
-    <div className="mb-4">
+    <div className="mb-4 w-full">
       <div className="mx-auto max-w-3xl rounded-lg border border-gray-700 bg-gray-800 p-6">
         <div className="mb-1 text-base font-bold text-white">
           {isAI ? "AI" : userName}

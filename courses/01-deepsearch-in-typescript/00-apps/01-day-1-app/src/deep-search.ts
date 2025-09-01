@@ -9,21 +9,16 @@ export const streamFromDeepSearch = async (opts: {
   telemetry: TelemetrySettings;
   writeMessageAnnotation: (annotation: OurMessageAnnotation) => void;
 }): Promise<StreamTextResult<{}, string>> => {
-  // Get the user's question from the last message
-  const lastMessage = opts.messages[opts.messages.length - 1];
-  if (!lastMessage || lastMessage.role !== "user") {
-    throw new Error("No user message found");
-  }
-
   // Extract langfuseTraceId from telemetry metadata
-  const langfuseTraceId = typeof opts.telemetry.metadata?.langfuseTraceId === 'string' 
-    ? opts.telemetry.metadata.langfuseTraceId 
-    : "";
+  const langfuseTraceId =
+    typeof opts.telemetry.metadata?.langfuseTraceId === "string"
+      ? opts.telemetry.metadata.langfuseTraceId
+      : "";
 
   // Run the agent loop and return the result
-  return runAgentLoop(lastMessage.content, {
-    writeMessageAnnotation: opts.writeMessageAnnotation,
+  return runAgentLoop(opts.messages, {
     langfuseTraceId,
+    onFinish: opts.onFinish,
   });
 };
 

@@ -1,3 +1,5 @@
+import type { Message } from "ai";
+
 export type QueryResultSearchResult = {
   date: string;
   title: string;
@@ -15,14 +17,8 @@ export type ScrapeResult = {
   result: string;
 };
 
-const toQueryResult = (
-  query: QueryResultSearchResult,
-) =>
-  [
-    `### ${query.date} - ${query.title}`,
-    query.url,
-    query.snippet,
-  ].join("\n\n");
+const toQueryResult = (query: QueryResultSearchResult) =>
+  [`### ${query.date} - ${query.title}`, query.url, query.snippet].join("\n\n");
 
 export class SystemContext {
   /**
@@ -41,12 +37,12 @@ export class SystemContext {
   private scrapeHistory: ScrapeResult[] = [];
 
   /**
-   * The user's original question
+   * The conversation history
    */
-  private userQuestion: string;
+  private conversationHistory: Message[];
 
-  constructor(userQuestion: string) {
-    this.userQuestion = userQuestion;
+  constructor(conversationHistory: Message[] = []) {
+    this.conversationHistory = conversationHistory;
   }
 
   shouldStop() {
@@ -61,8 +57,17 @@ export class SystemContext {
     this.step++;
   }
 
-  getUserQuestion() {
-    return this.userQuestion;
+  getConversationHistory(): string {
+    if (this.conversationHistory.length === 0) {
+      return "";
+    }
+
+    return this.conversationHistory
+      .map((message) => {
+        const role = message.role === "user" ? "User" : "Assistant";
+        return `<${role}>${message.content}</${role}>`;
+      })
+      .join("\n\n");
   }
 
   reportQueries(queries: QueryResult[]) {

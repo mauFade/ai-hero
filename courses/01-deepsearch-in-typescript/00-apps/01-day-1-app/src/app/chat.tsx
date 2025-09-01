@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { isNewChatCreated } from "~/utils";
 import type { Message } from "ai";
 import { StickToBottom } from "use-stick-to-bottom";
+import type { OurMessageAnnotation } from "~/get-next-action";
 
 interface ChatProps {
   userName: string;
@@ -61,7 +62,9 @@ export const ChatPage = ({ userName, chatId, initialMessages }: ChatProps) => {
                   content={message.content}
                   role={message.role}
                   userName={userName}
-                  annotations={message.annotations as any}
+                  annotations={
+                    (message.annotations ?? []) as OurMessageAnnotation[]
+                  }
                 />
               );
             })}

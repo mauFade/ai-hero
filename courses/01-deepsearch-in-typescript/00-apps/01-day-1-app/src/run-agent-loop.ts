@@ -1,4 +1,5 @@
-import type { StreamTextResult } from "ai";
+import type { StreamTextResult, Message } from "ai";
+import { streamText } from "ai";
 import { SystemContext, type QueryResult, type ScrapeResult } from "./system-context";
 import { getNextAction, type OurMessageAnnotation } from "~/get-next-action";
 import { searchSerper } from "~/serper";
@@ -46,14 +47,14 @@ const scrapeUrl = async (urls: string[]): Promise<ScrapeResult[]> => {
 };
 
 export const runAgentLoop = async (
-  userQuestion: string,
+  conversationHistory: Message[],
   opts: {
-    writeMessageAnnotation: (annotation: OurMessageAnnotation) => void;
     langfuseTraceId: string;
+    onFinish: Parameters<typeof streamText>[0]["onFinish"];
   },
 ): Promise<StreamTextResult<{}, string>> => {
   // A persistent container for the state of our system
-  const ctx = new SystemContext(userQuestion);
+  const ctx = new SystemContext(conversationHistory);
 
   // A loop that continues until we have an answer
   // or we've taken 10 actions
@@ -61,11 +62,7 @@ export const runAgentLoop = async (
     // We choose the next action based on the state of our system
     const nextAction = await getNextAction(ctx, opts.langfuseTraceId);
 
-    // Send annotation about the chosen action
-    opts.writeMessageAnnotation({
-      type: "NEW_ACTION",
-      action: nextAction,
-    });
+    
 
     // We execute the action and update the state of our system
     if (nextAction.type === "search") {
@@ -75,7 +72,7 @@ export const runAgentLoop = async (
       const results = await scrapeUrl(nextAction.urls);
       ctx.reportScrapes(results);
     } else if (nextAction.type === "answer") {
-      return answerQuestion(ctx, {}, opts.langfuseTraceId);
+      return answerQuestion(ctx, {}, opts.langfuseTraceId, opts.onFinish);
     }
 
     // We increment the step counter
@@ -84,5 +81,5 @@ export const runAgentLoop = async (
 
   // If we've taken 10 actions and still don't have an answer,
   // we ask the LLM to give its best attempt at an answer
-  return answerQuestion(ctx, { isFinal: true }, opts.langfuseTraceId);
+  return answerQuestion(ctx, { isFinal: true }, opts.langfuseTraceId, opts.onFinish);
 };

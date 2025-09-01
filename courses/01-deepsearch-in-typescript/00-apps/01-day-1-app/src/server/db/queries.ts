@@ -35,6 +35,7 @@ export const upsertChat = async (opts: {
       chatId,
       role: message.role,
       parts: message.parts,
+      annotations: message.annotations,
       order: index,
     })),
   );
@@ -54,7 +55,15 @@ export const getChat = async (opts: { userId: string; chatId: string }) => {
 
   if (!chat) return null;
 
-  return chat;
+  return {
+    ...chat,
+    messages: chat.messages.map((message) => ({
+      id: message.id,
+      role: message.role,
+      content: message.parts,
+      annotations: message.annotations,
+    })),
+  };
 };
 
 export const getChats = async (opts: { userId: string }) => {

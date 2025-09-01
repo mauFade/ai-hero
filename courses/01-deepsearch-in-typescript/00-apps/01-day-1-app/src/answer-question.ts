@@ -11,6 +11,7 @@ export const answerQuestion = (
   ctx: SystemContext,
   options: AnswerOptions = {},
   langfuseTraceId: string,
+  onFinish?: Parameters<typeof streamText>[0]["onFinish"],
 ): StreamTextResult<{}, string> => {
   const { isFinal = false } = options;
 
@@ -35,8 +36,9 @@ ${isFinal ? "IMPORTANT: You may not have all the information needed to answer th
 ## Current Date and Time
 Today's date is ${new Date().toLocaleString()}. When users ask for "up-to-date" information, "current" information, or "latest" news, use this date to provide context about what "current" means. Always mention the publication dates of sources when discussing time-sensitive information, and explain how recent or current the information is relative to today's date.`;
 
-  const prompt = `## User's Question
-${ctx.getUserQuestion()}
+  const prompt = `
+## Conversation History
+${ctx.getConversationHistory()}
 
 ## Search History
 ${ctx.getQueryHistory()}
@@ -50,6 +52,7 @@ ${isFinal ? "Note: This is the final attempt to answer the question. Provide the
     model,
     system: systemPrompt,
     prompt,
+    onFinish,
     experimental_telemetry:  {
       isEnabled: true,
       functionId: "answer-question",

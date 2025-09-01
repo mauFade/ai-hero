@@ -73,6 +73,9 @@ export async function POST(request: Request) {
         });
       }
 
+      // Collect annotations in memory
+      const annotations: OurMessageAnnotation[] = [];
+
       // 1. Wait for the result
       const result = await streamFromDeepSearch({
         messages,
@@ -87,6 +90,7 @@ export async function POST(request: Request) {
             return;
           }
 
+          lastMessage.annotations = annotations as any;
           // Save the complete chat history
           await upsertChat({
             userId: session.user.id,
@@ -105,6 +109,9 @@ export async function POST(request: Request) {
           },
         },
         writeMessageAnnotation: (annotation) => {
+          // Save the annotation in memory
+          annotations.push(annotation);
+          // Send it to the client
           dataStream.writeMessageAnnotation(annotation as any);
         },
       });

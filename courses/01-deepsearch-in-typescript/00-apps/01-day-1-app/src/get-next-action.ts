@@ -106,6 +106,10 @@ When using the scrape action, you MUST ALWAYS scrape 4-6 different websites to e
 - Different domains and publishers
 - Both recent and authoritative sources
 
+## Conversation History
+
+${context.getConversationHistory()}
+
 ## Current Context
 
 Here is the context of what has been done so far:
@@ -114,7 +118,7 @@ ${context.getQueryHistory()}
 
 ${context.getScrapeHistory()}
 
-Based on this context, choose the next action to take. If you have enough information to answer the user's question comprehensively, choose 'answer'. If you need more information, choose 'search' or 'scrape' as appropriate.`,
+Based on this context and conversation history, choose the next action to take. If you have enough information to answer the user's question comprehensively, choose 'answer'. If you need more information, choose 'search' or 'scrape' as appropriate.`,
     experimental_telemetry:  {
       isEnabled: true,
       functionId: "get-next-action",
