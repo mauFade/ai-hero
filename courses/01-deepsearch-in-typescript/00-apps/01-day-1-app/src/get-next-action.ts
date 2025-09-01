@@ -6,20 +6,37 @@ import type { SystemContext } from "~/system-context";
 export interface SearchAction {
   type: "search";
   query: string;
+  title: string;
+  reasoning: string;
+  [key: string]: unknown;
 }
 
 export interface ScrapeAction {
   type: "scrape";
   urls: string[];
+  title: string;
+  reasoning: string;
+  [key: string]: unknown;
 }
 
 export interface AnswerAction {
   type: "answer";
+  title: string;
+  reasoning: string;
+  [key: string]: unknown;
 }
 
 export type Action = SearchAction | ScrapeAction | AnswerAction;
 
 export const actionSchema = z.object({
+  title: z
+    .string()
+    .describe(
+      "The title of the action, to be displayed in the UI. Be extremely concise. 'Searching Saka's injury history', 'Checking HMRC industrial action', 'Comparing toaster ovens'",
+    ),
+  reasoning: z
+    .string()
+    .describe("The reason you chose this step."),
   type: z
     .enum(["search", "scrape", "answer"])
     .describe(
@@ -44,6 +61,7 @@ export const actionSchema = z.object({
 
 export const getNextAction = async (
   context: SystemContext,
+  langfuseTraceId: string,
 ): Promise<Action> => {
   const result = await generateObject({
     model,
@@ -58,6 +76,8 @@ You are a helpful, verbose AI assistant that always provides detailed, comprehen
 - Always cite your sources with clickable markdown links using the format [text](url).
 - Be conversational and helpful, but always back up your claims with properly formatted source links.
 - Err on the side of verbosity and completeness. Do not give short or single-sentence answers.
+
+IMPORTANT: When choosing actions, provide clear, concise titles and detailed reasoning for your choices. The title should be extremely brief (e.g., "Searching for latest news", "Scraping government website", "Analyzing search results"). The reasoning should explain why this step is necessary and what you hope to learn from it.
     `,
     prompt: `
 
@@ -95,9 +115,16 @@ ${context.getQueryHistory()}
 ${context.getScrapeHistory()}
 
 Based on this context, choose the next action to take. If you have enough information to answer the user's question comprehensively, choose 'answer'. If you need more information, choose 'search' or 'scrape' as appropriate.`,
+    experimental_telemetry:  {
+      isEnabled: true,
+      functionId: "get-next-action",
+      metadata: {
+        langfuseTraceId,
+      },
+    } ,
   });
 
-  const { type, query, urls } = result.object;
+  const { type, query, urls, title, reasoning } = result.object;
 
   // Validate that required fields are present based on action type
   if (type === "search" && !query) {
@@ -111,12 +138,17 @@ Based on this context, choose the next action to take. If you have enough inform
   // Return the appropriate action type
   switch (type) {
     case "search":
-      return { type: "search", query: query! };
+      return { type: "search", query: query!, title, reasoning };
     case "scrape":
-      return { type: "scrape", urls: urls! };
+      return { type: "scrape", urls: urls!, title, reasoning };
     case "answer":
-      return { type: "answer" };
+      return { type: "answer", title, reasoning };
     default:
       throw new Error(`Unknown action type: ${type}`);
   }
+};
+
+export type OurMessageAnnotation = {
+  type: "NEW_ACTION";
+  action: Action;
 };

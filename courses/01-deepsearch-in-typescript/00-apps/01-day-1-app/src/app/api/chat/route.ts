@@ -12,6 +12,7 @@ import { db } from "~/server/db";
 import { Langfuse } from "langfuse";
 import { env } from "~/env";
 import { streamFromDeepSearch } from "~/deep-search";
+import type { OurMessageAnnotation } from "~/get-next-action";
 
 const langfuse = new Langfuse({
   environment: env.NODE_ENV,
@@ -102,6 +103,9 @@ export async function POST(request: Request) {
           metadata: {
             langfuseTraceId: trace.id,
           },
+        },
+        writeMessageAnnotation: (annotation) => {
+          dataStream.writeMessageAnnotation(annotation as any);
         },
       });
 

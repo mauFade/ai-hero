@@ -1,6 +1,6 @@
 import type { StreamTextResult } from "ai";
 import { SystemContext, type QueryResult, type ScrapeResult } from "./system-context";
-import { getNextAction } from "~/get-next-action";
+import { getNextAction, type OurMessageAnnotation } from "~/get-next-action";
 import { searchSerper } from "~/serper";
 import { bulkCrawlWebsites } from "~/server/scraper";
 import { answerQuestion } from "./answer-question";
@@ -45,7 +45,13 @@ const scrapeUrl = async (urls: string[]): Promise<ScrapeResult[]> => {
     }));
 };
 
-export const runAgentLoop = async (userQuestion: string): Promise<StreamTextResult<{}, string>> => {
+export const runAgentLoop = async (
+  userQuestion: string,
+  opts: {
+    writeMessageAnnotation: (annotation: OurMessageAnnotation) => void;
+    langfuseTraceId: string;
+  },
+): Promise<StreamTextResult<{}, string>> => {
   // A persistent container for the state of our system
   const ctx = new SystemContext(userQuestion);
 
@@ -53,7 +59,13 @@ export const runAgentLoop = async (userQuestion: string): Promise<StreamTextResu
   // or we've taken 10 actions
   while (!ctx.shouldStop()) {
     // We choose the next action based on the state of our system
-    const nextAction = await getNextAction(ctx);
+    const nextAction = await getNextAction(ctx, opts.langfuseTraceId);
+
+    // Send annotation about the chosen action
+    opts.writeMessageAnnotation({
+      type: "NEW_ACTION",
+      action: nextAction,
+    });
 
     // We execute the action and update the state of our system
     if (nextAction.type === "search") {
@@ -63,7 +75,7 @@ export const runAgentLoop = async (userQuestion: string): Promise<StreamTextResu
       const results = await scrapeUrl(nextAction.urls);
       ctx.reportScrapes(results);
     } else if (nextAction.type === "answer") {
-      return answerQuestion(ctx);
+      return answerQuestion(ctx, {}, opts.langfuseTraceId);
     }
 
     // We increment the step counter
@@ -72,5 +84,5 @@ export const runAgentLoop = async (userQuestion: string): Promise<StreamTextResu
 
   // If we've taken 10 actions and still don't have an answer,
   // we ask the LLM to give its best attempt at an answer
-  return answerQuestion(ctx, { isFinal: true });
+  return answerQuestion(ctx, { isFinal: true }, opts.langfuseTraceId);
 };

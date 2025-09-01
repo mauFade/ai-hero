@@ -10,6 +10,7 @@ interface AnswerOptions {
 export const answerQuestion = (
   ctx: SystemContext,
   options: AnswerOptions = {},
+  langfuseTraceId: string,
 ): StreamTextResult<{}, string> => {
   const { isFinal = false } = options;
 
@@ -49,5 +50,12 @@ ${isFinal ? "Note: This is the final attempt to answer the question. Provide the
     model,
     system: systemPrompt,
     prompt,
+    experimental_telemetry:  {
+      isEnabled: true,
+      functionId: "answer-question",
+      metadata: {
+        langfuseTraceId,
+      },
+    },
   });
 };

@@ -1,5 +1,7 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import type { Message } from "ai";
+import { ReasoningSteps } from "./reasoning-steps";
+import type { OurMessageAnnotation } from "~/get-next-action";
 
 export type MessagePart = NonNullable<Message["parts"]>[number];
 
@@ -8,6 +10,7 @@ interface ChatMessageProps {
   content?: string;
   role: string;
   userName: string;
+  annotations?: OurMessageAnnotation[];
 }
 
 const components: Components = {
@@ -94,6 +97,7 @@ export const ChatMessage = ({
   content,
   role,
   userName,
+  annotations,
 }: ChatMessageProps) => {
   const isAI = role === "assistant";
 
@@ -104,6 +108,10 @@ export const ChatMessage = ({
           {isAI ? "AI" : userName}
         </div>
         <div className="space-y-1">
+          {/* Show reasoning steps for AI messages */}
+          {isAI && annotations && annotations.length > 0 && (
+            <ReasoningSteps annotations={annotations} />
+          )}
           {content ? (
             <div className="text-[1.05rem] leading-relaxed text-gray-200">
               <Markdown>{content}</Markdown>
