@@ -33,7 +33,7 @@ export const actionSchema = z.object({
     .enum(["search", "answer"])
     .describe(
       `The type of action to take.
-      - 'search': Search the web for more information and automatically scrape the most relevant URLs.
+      - 'search': Search the web for more information and automatically scrape and summarize the most relevant URLs.
       - 'answer': Answer the user's question and complete the loop.`,
     ),
   query: z
@@ -72,7 +72,8 @@ IMPORTANT: When choosing actions, provide clear, concise titles and detailed rea
 Use this action to search the web for current information. This action will:
 - Search the web for relevant information
 - Automatically scrape the most relevant URLs to get complete content
-- Return both search snippets and full scraped content for comprehensive analysis
+- Summarize the scraped content to extract the most relevant information
+- Return both search snippets and summarized content for comprehensive analysis
 
 ### answer
 Use this action when you have gathered enough information to provide a comprehensive answer to the user's question.

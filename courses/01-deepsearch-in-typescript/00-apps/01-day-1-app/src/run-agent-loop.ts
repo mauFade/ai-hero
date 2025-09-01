@@ -5,9 +5,14 @@ import { getNextAction, type OurMessageAnnotation } from "~/get-next-action";
 import { searchSerper } from "~/serper";
 import { bulkCrawlWebsites } from "~/server/scraper";
 import { answerQuestion } from "./answer-question";
+import { summarizeURL } from "~/summarize-url";
 
-// Combined search and scrape function
-const searchAndScrape = async (query: string): Promise<SearchHistoryEntry> => {
+// Combined search, scrape, and summarize function
+const searchAndScrape = async (
+  query: string,
+  conversationHistory: string,
+  langfuseTraceId: string,
+): Promise<SearchHistoryEntry> => {
   // Search for information with reduced results (3 instead of 10)
   const results = await searchSerper(
     { q: query, num: 3 },
@@ -20,20 +25,36 @@ const searchAndScrape = async (query: string): Promise<SearchHistoryEntry> => {
   // Scrape the URLs
   const scrapeResult = await bulkCrawlWebsites({ urls });
 
-  // Combine search results with scraped content
-  const combinedResults = results.organic.map((result, index) => {
-    const scrapedContent = scrapeResult.results[index]?.result.success 
-      ? (scrapeResult.results[index].result as any).data 
-      : "Failed to scrape content";
+  // Combine search results with scraped content and summarize in parallel
+  const combinedResults = await Promise.all(
+    results.organic.map(async (result, index) => {
+      const scrapedContent = scrapeResult.results[index]?.result.success 
+        ? (scrapeResult.results[index].result as any).data 
+        : "Failed to scrape content";
 
-    return {
-      date: result.date || "Unknown date",
-      title: result.title,
-      url: result.link,
-      snippet: result.snippet,
-      scrapedContent,
-    };
-  });
+      // Summarize the content
+      const summary = await summarizeURL({
+        conversationHistory,
+        scrapedContent,
+        searchMetadata: {
+          date: result.date || "Unknown date",
+          title: result.title,
+          url: result.link,
+        },
+        query,
+        langfuseTraceId,
+      });
+
+      return {
+        date: result.date || "Unknown date",
+        title: result.title,
+        url: result.link,
+        snippet: result.snippet,
+        scrapedContent,
+        summary,
+      };
+    }),
+  );
 
   return {
     query,
@@ -59,7 +80,7 @@ export const runAgentLoop = async (
 
     // We execute the action and update the state of our system
     if (nextAction.type === "search") {
-      const result = await searchAndScrape(nextAction.query);
+      const result = await searchAndScrape(nextAction.query, ctx.getConversationHistory(), opts.langfuseTraceId);
       ctx.reportSearch(result);
     } else if (nextAction.type === "answer") {
       return answerQuestion(ctx, {}, opts.langfuseTraceId, opts.onFinish);

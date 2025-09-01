@@ -23,7 +23,7 @@ export const answerQuestion = (
 - Err on the side of verbosity and completeness. Do not give short or single-sentence answers.
 - Always provide as much useful information as possible.
 
-Based on the search results and scraped content above, provide a comprehensive answer to the user's question. Make sure to:
+Based on the search results and summarized content above, provide a comprehensive answer to the user's question. Make sure to:
 
 1. Address the question directly and thoroughly
 2. Cite sources using markdown links: [text](url)
