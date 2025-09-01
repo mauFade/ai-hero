@@ -41,10 +41,7 @@ Today's date is ${new Date().toLocaleString()}. When users ask for "up-to-date" 
 ${ctx.getConversationHistory()}
 
 ## Search History
-${ctx.getQueryHistory()}
-
-## Scrape History
-${ctx.getScrapeHistory()}
+${ctx.getSearchHistory()}
 
 ${isFinal ? "Note: This is the final attempt to answer the question. Provide the best possible answer with the information available, even if it's incomplete." : ""}`;
 

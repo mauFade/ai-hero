@@ -11,14 +11,6 @@ export interface SearchAction {
   [key: string]: unknown;
 }
 
-export interface ScrapeAction {
-  type: "scrape";
-  urls: string[];
-  title: string;
-  reasoning: string;
-  [key: string]: unknown;
-}
-
 export interface AnswerAction {
   type: "answer";
   title: string;
@@ -26,7 +18,7 @@ export interface AnswerAction {
   [key: string]: unknown;
 }
 
-export type Action = SearchAction | ScrapeAction | AnswerAction;
+export type Action = SearchAction | AnswerAction;
 
 export const actionSchema = z.object({
   title: z
@@ -38,23 +30,16 @@ export const actionSchema = z.object({
     .string()
     .describe("The reason you chose this step."),
   type: z
-    .enum(["search", "scrape", "answer"])
+    .enum(["search", "answer"])
     .describe(
       `The type of action to take.
-      - 'search': Search the web for more information.
-      - 'scrape': Scrape a URL.
+      - 'search': Search the web for more information and automatically scrape the most relevant URLs.
       - 'answer': Answer the user's question and complete the loop.`,
     ),
   query: z
     .string()
     .describe(
       "The query to search for. Required if type is 'search'.",
-    )
-    .optional(),
-  urls: z
-    .array(z.string())
-    .describe(
-      "The URLs to scrape. Required if type is 'scrape'.",
     )
     .optional(),
 });
@@ -67,7 +52,7 @@ export const getNextAction = async (
     model,
     schema: actionSchema,
     system: `
-      You are a helpful assistant that can search the web, scrape a URL, or answer the user's question.
+      You are a helpful assistant that can search the web or answer the user's question.
 
 You are a helpful, verbose AI assistant that always provides detailed, comprehensive, and multi-paragraph answers. For any factual, informational, or open-ended question, you must use the search web tool to find and include as much relevant information as possible. Your responses should:
 
@@ -77,34 +62,20 @@ You are a helpful, verbose AI assistant that always provides detailed, comprehen
 - Be conversational and helpful, but always back up your claims with properly formatted source links.
 - Err on the side of verbosity and completeness. Do not give short or single-sentence answers.
 
-IMPORTANT: When choosing actions, provide clear, concise titles and detailed reasoning for your choices. The title should be extremely brief (e.g., "Searching for latest news", "Scraping government website", "Analyzing search results"). The reasoning should explain why this step is necessary and what you hope to learn from it.
+IMPORTANT: When choosing actions, provide clear, concise titles and detailed reasoning for your choices. The title should be extremely brief (e.g., "Searching for latest news", "Analyzing search results"). The reasoning should explain why this step is necessary and what you hope to learn from it.
     `,
     prompt: `
 
 ## Available Actions
 
 ### search
-Use this action to search the web for current information. This returns search snippets that provide a quick overview of relevant content, including publication dates when available.
-
-### scrape
-Use this action when you need to extract the full text content from specific web pages. This is particularly useful when:
-- You need detailed information from specific articles or pages
-- The search snippets don't provide enough detail
-- You want to analyze the complete content of a webpage
-- You need to extract structured information from multiple pages
+Use this action to search the web for current information. This action will:
+- Search the web for relevant information
+- Automatically scrape the most relevant URLs to get complete content
+- Return both search snippets and full scraped content for comprehensive analysis
 
 ### answer
 Use this action when you have gathered enough information to provide a comprehensive answer to the user's question.
-
-## IMPORTANT: Always Use scrape After search
-After using the search action, you MUST ALWAYS use the scrape action to extract the full content from the most relevant URLs found in your search results. Do not rely solely on search snippets - always scrape the actual pages to get complete, detailed information.
-
-## CRITICAL: Scrape Multiple Diverse Sources
-When using the scrape action, you MUST ALWAYS scrape 4-6 different websites to ensure comprehensive coverage. Choose a diverse set of sources including:
-- Different types of websites (news sites, blogs, official documentation, academic sources, etc.)
-- Different perspectives and viewpoints
-- Different domains and publishers
-- Both recent and authoritative sources
 
 ## Conversation History
 
@@ -114,11 +85,10 @@ ${context.getConversationHistory()}
 
 Here is the context of what has been done so far:
 
-${context.getQueryHistory()}
+${context.getSearchHistory()}
 
-${context.getScrapeHistory()}
-
-Based on this context and conversation history, choose the next action to take. If you have enough information to answer the user's question comprehensively, choose 'answer'. If you need more information, choose 'search' or 'scrape' as appropriate.`,
+Based on this context and conversation history, choose the next action to take. If you have enough information to answer the user's question comprehensively, choose 'answer'. If you need more information, choose 'search'.
+    `,
     experimental_telemetry:  {
       isEnabled: true,
       functionId: "get-next-action",
@@ -128,23 +98,17 @@ Based on this context and conversation history, choose the next action to take. 
     } ,
   });
 
-  const { type, query, urls, title, reasoning } = result.object;
+  const { type, query, title, reasoning } = result.object;
 
   // Validate that required fields are present based on action type
   if (type === "search" && !query) {
     throw new Error("Query is required for search action");
   }
 
-  if (type === "scrape" && (!urls || urls.length === 0)) {
-    throw new Error("URLs are required for scrape action");
-  }
-
   // Return the appropriate action type
   switch (type) {
     case "search":
       return { type: "search", query: query!, title, reasoning };
-    case "scrape":
-      return { type: "scrape", urls: urls!, title, reasoning };
     case "answer":
       return { type: "answer", title, reasoning };
     default:

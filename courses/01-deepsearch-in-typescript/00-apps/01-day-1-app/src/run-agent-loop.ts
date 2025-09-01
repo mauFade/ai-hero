@@ -1,49 +1,44 @@
 import type { StreamTextResult, Message } from "ai";
 import { streamText } from "ai";
-import { SystemContext, type QueryResult, type ScrapeResult } from "./system-context";
+import { SystemContext, type SearchHistoryEntry } from "./system-context";
 import { getNextAction, type OurMessageAnnotation } from "~/get-next-action";
 import { searchSerper } from "~/serper";
 import { bulkCrawlWebsites } from "~/server/scraper";
 import { answerQuestion } from "./answer-question";
 
-// Copy of the search function from deep-search.ts
-const searchWeb = async (query: string): Promise<QueryResult> => {
+// Combined search and scrape function
+const searchAndScrape = async (query: string): Promise<SearchHistoryEntry> => {
+  // Search for information with reduced results (3 instead of 10)
   const results = await searchSerper(
-    { q: query, num: 10 },
+    { q: query, num: 3 },
     undefined, // no abort signal for this implementation
   );
 
-  return {
-    query,
-    results: results.organic.map((result) => ({
+  // Extract URLs from search results
+  const urls = results.organic.map((result) => result.link);
+
+  // Scrape the URLs
+  const scrapeResult = await bulkCrawlWebsites({ urls });
+
+  // Combine search results with scraped content
+  const combinedResults = results.organic.map((result, index) => {
+    const scrapedContent = scrapeResult.results[index]?.result.success 
+      ? (scrapeResult.results[index].result as any).data 
+      : "Failed to scrape content";
+
+    return {
+      date: result.date || "Unknown date",
       title: result.title,
       url: result.link,
       snippet: result.snippet,
-      date: result.date || "Unknown date",
-    })),
+      scrapedContent,
+    };
+  });
+
+  return {
+    query,
+    results: combinedResults,
   };
-};
-
-// Copy of the scrape function from deep-search.ts
-const scrapeUrl = async (urls: string[]): Promise<ScrapeResult[]> => {
-  const result = await bulkCrawlWebsites({ urls });
-
-  if (!result.success) {
-    // Return successful scrapes even if some failed
-    return result.results
-      .filter((r) => r.result.success)
-      .map((r) => ({
-        url: r.url,
-        result: (r.result as any).data,
-      }));
-  }
-
-  return result.results
-    .filter((r) => r.result.success)
-    .map((r) => ({
-      url: r.url,
-      result: r.result.data,
-    }));
 };
 
 export const runAgentLoop = async (
@@ -62,15 +57,10 @@ export const runAgentLoop = async (
     // We choose the next action based on the state of our system
     const nextAction = await getNextAction(ctx, opts.langfuseTraceId);
 
-    
-
     // We execute the action and update the state of our system
     if (nextAction.type === "search") {
-      const result = await searchWeb(nextAction.query);
-      ctx.reportQueries([result]);
-    } else if (nextAction.type === "scrape") {
-      const results = await scrapeUrl(nextAction.urls);
-      ctx.reportScrapes(results);
+      const result = await searchAndScrape(nextAction.query);
+      ctx.reportSearch(result);
     } else if (nextAction.type === "answer") {
       return answerQuestion(ctx, {}, opts.langfuseTraceId, opts.onFinish);
     }
