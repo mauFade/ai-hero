@@ -1,5 +1,5 @@
-import { env } from "~/env";
 import Redis from "ioredis";
+import { env } from "~/env";
 
 export const redis = new Redis(env.REDIS_URL);
 
@@ -8,7 +8,7 @@ const CACHE_KEY_SEPARATOR = ":";
 
 export const cacheWithRedis = <TFunc extends (...args: any[]) => Promise<any>>(
   keyPrefix: string,
-  fn: TFunc,
+  fn: TFunc
 ): TFunc => {
   return (async (...args: Parameters<TFunc>) => {
     const key = `${keyPrefix}${CACHE_KEY_SEPARATOR}${JSON.stringify(args)}`;

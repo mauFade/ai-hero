@@ -1,8 +1,8 @@
+import type { UIMessage } from "ai";
 import ReactMarkdown, { type Components } from "react-markdown";
 
 interface ChatMessageProps {
-  text: string;
-  role: string;
+  message: UIMessage;
   userName: string;
 }
 
@@ -38,8 +38,21 @@ const Markdown = ({ children }: { children: string }) => {
   return <ReactMarkdown components={components}>{children}</ReactMarkdown>;
 };
 
-export const ChatMessage = ({ text, role, userName }: ChatMessageProps) => {
-  const isAI = role === "assistant";
+export const ChatMessage = ({ message, userName }: ChatMessageProps) => {
+  const isAI = message.role === "assistant";
+
+  // Extract text content from message parts
+  const textContent = message.parts
+    .map((part) => {
+      switch (part.type) {
+        case "text":
+          return part.text;
+        default:
+          return null;
+      }
+    })
+    .filter((text): text is string => text !== null)
+    .join("");
 
   return (
     <div className="mb-6">
@@ -52,8 +65,8 @@ export const ChatMessage = ({ text, role, userName }: ChatMessageProps) => {
           {isAI ? "AI" : userName}
         </p>
 
-        <div className="prose prose-invert max-w-none">
-          <Markdown>{text}</Markdown>
+        <div className="prose prose-invert max-w-none whitespace-pre-wrap">
+          <Markdown>{textContent}</Markdown>
         </div>
       </div>
     </div>

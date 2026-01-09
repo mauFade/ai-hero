@@ -1,9 +1,9 @@
 "use client";
 
 import { signIn, signOut } from "next-auth/react";
-import { siDiscord } from "simple-icons/icons";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { siDiscord } from "simple-icons/icons";
 
 interface AuthButtonProps {
   isAuthenticated: boolean;

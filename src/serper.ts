@@ -60,7 +60,7 @@ const fetchFromSerper = cacheWithRedis(
   "serper",
   async (
     url: string,
-    options: Omit<RequestInit, "headers"> & { signal: AbortSignal | undefined },
+    options: Omit<RequestInit, "headers"> & { signal: AbortSignal | undefined }
   ): Promise<SerperTool.SearchResult> => {
     if (!process.env.SERPER_API_KEY) {
       throw new Error("SERPER_API_KEY is not set in .env");
@@ -82,12 +82,12 @@ const fetchFromSerper = cacheWithRedis(
     const json = await response.json();
 
     return json;
-  },
+  }
 );
 
 export const searchSerper = async (
   body: SerperTool.SearchInput,
-  signal: AbortSignal | undefined,
+  signal: AbortSignal | undefined
 ) => {
   const results = await fetchFromSerper(`/search`, {
     method: "POST",

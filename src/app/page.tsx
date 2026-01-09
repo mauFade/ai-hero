@@ -1,8 +1,8 @@
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { auth } from "~/server/auth/index.ts";
-import { ChatPage } from "./chat.tsx";
 import { AuthButton } from "../components/auth-button.tsx";
+import { ChatPage } from "./chat.tsx";
 
 const chats = [
   {
